@@ -244,6 +244,36 @@ label { display: block; font-size: 0.8rem; color: var(--fg-muted); margin-bottom
 .voice-btn.listening { background: var(--danger); color: #fff; border-color: var(--danger); animation: pulse 1.2s infinite; }
 @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 50%, transparent);} 50% { box-shadow: 0 0 0 8px transparent; } }
 
+/* Botón flotante de voz en el home */
+.voice-fab {
+  position: fixed; right: 22px; bottom: 22px; z-index: 40;
+  display: flex; align-items: center; gap: 0.5rem;
+  height: 60px; padding: 0 1.3rem; border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--indigo-600));
+  color: #fff; font-weight: 700; font-size: 0.95rem;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--accent) 45%, transparent);
+  animation: fab-bob 2.6s ease-in-out infinite;
+}
+.voice-fab:hover { filter: brightness(1.06); }
+.voice-fab-icon { font-size: 1.5rem; line-height: 1; }
+.voice-fab.listening {
+  background: var(--danger); animation: fab-pulse 1.1s infinite;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 55%, transparent);
+}
+@keyframes fab-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes fab-pulse {
+  0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 55%, transparent); }
+  50% { box-shadow: 0 0 0 14px transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .voice-fab { animation: none; } }
+
+@media (max-width: 620px) {
+  /* En móvil el FAB es circular (solo el ícono) para no estorbar */
+  .voice-fab { right: 16px; bottom: 16px; height: 58px; width: 58px; padding: 0; justify-content: center; }
+  .voice-fab-label { display: none; }
+  .voice-fab.listening .voice-fab-label { display: none; }
+}
+
 /* ---------- Admin / History ---------- */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.2rem; margin-bottom: 0.8rem; }
 .list-row { display: flex; align-items: center; gap: 0.8rem; padding: 0.7rem 0; border-bottom: 1px solid var(--border); }

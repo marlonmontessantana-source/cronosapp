@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import TaskModal from './TaskModal.jsx';
+import VoiceButton from './VoiceButton.jsx';
 
 const DOW = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -138,6 +139,12 @@ export default function Calendar({ toast }) {
   const selectedOccs = selectedDate ? (occByDate[selectedDate] || []) : null;
   const defaultAddDate = view === 'month' ? (selectedDate || todayStr) : ymd(anchor);
 
+  // Voz desde el home: escucha, interpreta y abre el formulario prellenado para confirmar.
+  const handleVoice = (task, transcript) => {
+    setSelectedDate(null);
+    setModal({ defaultDate: defaultAddDate, prefill: task, voiceTranscript: transcript });
+  };
+
   return (
     <div>
       <div className="cal-toolbar">
@@ -252,10 +259,15 @@ export default function Calendar({ toast }) {
         </div>
       )}
 
+      {/* Botón flotante de voz: invita a agendar dictando la tarea */}
+      <VoiceButton variant="fab" onResult={handleVoice} onError={toast} />
+
       {modal && (
         <TaskModal
           initial={modal.initial}
           defaultDate={modal.defaultDate}
+          prefill={modal.prefill}
+          voiceTranscript={modal.voiceTranscript}
           onClose={() => setModal(null)}
           onSaved={async () => { setModal(null); await load(); toast('Tarea guardada ✓'); }}
         />

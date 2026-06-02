@@ -28,7 +28,7 @@ function blank(date) {
   };
 }
 
-export default function TaskModal({ initial, defaultDate, onClose, onSaved }) {
+export default function TaskModal({ initial, defaultDate, prefill, voiceTranscript, onClose, onSaved }) {
   const [form, setForm] = useState(() => {
     if (initial) {
       return {
@@ -40,11 +40,23 @@ export default function TaskModal({ initial, defaultDate, onClose, onSaved }) {
           : [],
       };
     }
-    return blank(defaultDate);
+    const base = blank(defaultDate);
+    if (prefill) {
+      return {
+        ...base,
+        title: prefill.title || '',
+        start_date: prefill.start_date || base.start_date,
+        time: prefill.time || '',
+        recurrence_type: prefill.recurrence_type || 'none',
+        recurrence_interval: prefill.recurrence_interval || 1,
+        recurrence_weekdays: prefill.recurrence_weekdays || [],
+      };
+    }
+    return base;
   });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [voiceNote, setVoiceNote] = useState('');
+  const [voiceNote, setVoiceNote] = useState(voiceTranscript ? `🎙️ "${voiceTranscript}"` : '');
 
   useEffect(() => {
     const onEsc = (e) => e.key === 'Escape' && onClose();
