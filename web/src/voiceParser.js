@@ -107,19 +107,34 @@ export function parseVoiceToTask(transcript) {
 
   // --- Limpiar el título: quitar expresiones de fecha/hora/recurrencia ---
   let title = text;
-  if (parsed.length) {
-    title = title.replace(parsed[0].text, ' ');
-  }
+  // Quitar lo que chrono identificó como fecha/hora.
+  for (const p of parsed) title = title.replace(p.text, ' ');
   title = title
-    .replace(/\b(todos los d[ií]as|cada d[ií]a|diariamente|a diario)\b/gi, ' ')
-    .replace(/cada \d+ (d[ií]as?|semanas?|meses)/gi, ' ')
-    .replace(/\b(cada|todas las|todos los|los)\s+(semana|semanas|mes|meses|domingos?|lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bados?)\b/gi, ' ')
-    .replace(/\b(semanalmente|mensualmente|a diario)\b/gi, ' ')
-    .replace(/a las? \d{1,2}(:\d{2})?(\s*(de la (mañana|tarde|noche)|am|pm|a\.m\.|p\.m\.))?/gi, ' ')
-    .replace(/\b(y media|y cuarto)\b/gi, ' ')
-    .replace(/\b(recordar|recuérdame|recuerdame|agendar|agenda|programa|programar|crear tarea|nueva tarea|tarea)\b/gi, ' ')
+    // recurrencia explícita
+    .replace(/\b(todos los d[ií]as|cada d[ií]a|diariamente|a diario|semanalmente|mensualmente)\b/gi, ' ')
+    .replace(/\bcada (\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez) (d[ií]as?|semanas?|meses)\b/gi, ' ')
+    .replace(/\b(cada|todas las|todos los|los|la|el)\s+(semanas?|mes|meses)\b/gi, ' ')
+    // horas y fragmentos de hora restantes
+    .replace(/\ba las?\b/gi, ' ')
+    .replace(/\b\d{1,2}(:\d{2})?\s*(de la (mañana|tarde|noche)|am|pm|a\.m\.|p\.m\.)\b/gi, ' ')
+    .replace(/\bde la (mañana|tarde|noche)\b/gi, ' ')
+    .replace(/\by (media|cuarto)\b/gi, ' ')
+    // días de la semana sueltos
+    .replace(/\b(domingos?|lunes|martes|mi[ée]rcoles|miercoles|jueves|viernes|s[áa]bados?|sabados?)\b/gi, ' ')
+    // conectores y cuantificadores sobrantes
+    .replace(/\b(cada|todos los|todas las|los)\b/gi, ' ')
+    // palabras gatillo iniciales
+    .replace(/\b(recu[eé]rdame|recordar|agéndame|ag[eé]ndame|agendar|agenda|prog?ram[ae]r?|crear? (una )?tarea|nueva tarea)\b/gi, ' ')
+    .replace(/\s+(y|e)\s+/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+  // Quitar conectores sueltos al inicio/final de forma iterativa ("a de", "de la", etc.).
+  const connector = /^(a|al|de|del|y|e|en|que|con|el|la|lo|las|los|un|una)$/i;
+  let words = title.split(/\s+/).filter(Boolean);
+  while (words.length > 1 && connector.test(words[0])) words.shift();
+  while (words.length > 1 && connector.test(words[words.length - 1])) words.pop();
+  title = words.join(' ').trim();
 
   if (title) {
     result.title = title.charAt(0).toUpperCase() + title.slice(1);
