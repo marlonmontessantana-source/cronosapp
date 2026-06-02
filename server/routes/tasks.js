@@ -45,6 +45,7 @@ function validate(t) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(t.start_date)) return 'Fecha de inicio inválida';
   if (!/^\d{2}:\d{2}$/.test(t.time)) return 'La hora de inicio es obligatoria';
   if (!/^\d{2}:\d{2}$/.test(t.end_time)) return 'Hora de fin inválida';
+  if (t.end_time <= t.time) return 'La hora de fin debe ser posterior a la de inicio';
   return null;
 }
 

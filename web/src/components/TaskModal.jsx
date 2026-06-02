@@ -114,6 +114,7 @@ export default function TaskModal({ initial, defaultDate, prefill, voiceTranscri
     if (!form.title.trim()) return setError('El título es obligatorio');
     if (!/^\d{2}:\d{2}$/.test(form.time)) return setError('La hora de inicio es obligatoria');
     if (!/^\d{2}:\d{2}$/.test(form.end_time)) return setError('La hora de fin es obligatoria');
+    if (form.end_time <= form.time) return setError('La hora de fin debe ser posterior a la de inicio');
     setBusy(true);
     try {
       const payload = {
