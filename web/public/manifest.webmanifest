@@ -1,0 +1,17 @@
+{
+  "name": "CronosApp",
+  "short_name": "CronosApp",
+  "description": "Calendario de tareas recurrentes con historial y recordatorios",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

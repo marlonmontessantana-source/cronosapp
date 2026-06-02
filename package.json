@@ -1,0 +1,25 @@
+{
+  "name": "cronosapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Calendario de tareas recurrentes con autenticación, voz e historial",
+  "type": "module",
+  "scripts": {
+    "dev:web": "npm --prefix web run dev",
+    "dev:server": "node --watch server/index.js",
+    "build": "npm --prefix web install && npm --prefix web run build",
+    "setup": "npm install && npm --prefix web install",
+    "start": "node --env-file-if-exists=.env server/index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "node-cron": "^3.0.3",
+    "web-push": "^3.6.7"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}
