@@ -41,11 +41,11 @@ export default function App() {
           <span>CronosApp</span>
         </div>
 
-        <nav className="tabs" style={{ marginLeft: '0.6rem' }}>
-          <button className={'tab' + (tab === 'calendar' ? ' active' : '')} onClick={() => setTab('calendar')}>📅 Calendario</button>
-          <button className={'tab' + (tab === 'history' ? ' active' : '')} onClick={() => setTab('history')}>📜 Historial</button>
+        <nav className="tabs">
+          <button className={'tab' + (tab === 'calendar' ? ' active' : '')} onClick={() => setTab('calendar')}>📅 <span className="tab-label">Calendario</span></button>
+          <button className={'tab' + (tab === 'history' ? ' active' : '')} onClick={() => setTab('history')}>📜 <span className="tab-label">Historial</span></button>
           {user.role === 'admin' && (
-            <button className={'tab' + (tab === 'admin' ? ' active' : '')} onClick={() => setTab('admin')}>👥 Usuarios</button>
+            <button className={'tab' + (tab === 'admin' ? ' active' : '')} onClick={() => setTab('admin')}>👥 <span className="tab-label">Usuarios</span></button>
           )}
         </nav>
 
