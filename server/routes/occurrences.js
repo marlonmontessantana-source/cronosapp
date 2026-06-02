@@ -36,6 +36,7 @@ router.get('/', (req, res) => {
         description: task.description,
         color: task.color,
         time: task.time,
+        end_time: task.end_time,
         date,
         recurrence_type: task.recurrence_type,
         status: c ? c.status : 'pending',
@@ -84,7 +85,7 @@ router.get('/history', (req, res) => {
   const rows = db
     .prepare(
       `SELECT c.id, c.task_id, c.occurrence_date, c.status, c.completed_at,
-              t.title, t.color, t.time
+              t.title, t.color, t.time, t.end_time
        FROM completions c JOIN tasks t ON t.id = c.task_id
        WHERE c.user_id = ?
        ORDER BY c.completed_at DESC

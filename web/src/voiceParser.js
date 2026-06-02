@@ -78,6 +78,14 @@ export function parseVoiceToTask(transcript) {
     result.recurrence_weekdays = [...new Set(mentionedDays)];
   }
 
+  // --- Día relativo explícito: hoy / mañana / pasado mañana ---
+  // Protegemos "de la mañana" (franja horaria) para no confundirla con "mañana" (día siguiente).
+  const dayText = lower.replace(/de la mañana/g, ' __franja__ ');
+  let relDay = null;
+  if (/\bpasado\s+mañana\b/.test(dayText)) relDay = 2;
+  else if (/\bmañana\b/.test(dayText)) relDay = 1;
+  else if (/\bhoy\b/.test(dayText)) relDay = 0;
+
   // --- Fecha y hora con chrono (locale español) ---
   const parsed = chrono.es.parse(text, now, { forwardDate: true });
   if (parsed.length) {
@@ -89,21 +97,38 @@ export function parseVoiceToTask(transcript) {
     }
   }
 
-  // Hora explícita tipo "a las 8", "a las 3 de la tarde", "8 y media"
-  if (!result.time) {
-    const hourMatch = lower.match(/a las? (\d{1,2})(?::(\d{2})| y (media|cuarto))?\s*(de la (mañana|tarde|noche)|am|pm|a\.m\.|p\.m\.)?/);
-    if (hourMatch) {
-      let h = parseInt(hourMatch[1], 10);
-      let m = 0;
-      if (hourMatch[2]) m = parseInt(hourMatch[2], 10);
-      else if (hourMatch[3] === 'media') m = 30;
-      else if (hourMatch[3] === 'cuarto') m = 15;
-      const period = hourMatch[4] || '';
-      if (/tarde|noche|pm|p\.m\./.test(period) && h < 12) h += 12;
-      if (/mañana|am|a\.m\./.test(period) && h === 12) h = 0;
+  // El día relativo explícito tiene prioridad (chrono no maneja bien "pasado mañana").
+  if (relDay !== null) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + relDay);
+    result.start_date = toYMD(d);
+  }
+
+  // Hora explícita: "a las 2 de la tarde", "a las 8", "8 y media", "5 de la tarde".
+  // Tiene prioridad sobre chrono porque maneja mejor el AM/PM en español.
+  const hourMatch = lower.match(/(?:a las?\s+)?\b(\d{1,2})(?::(\d{2})| y (media|cuarto))?\s*(de la (?:mañana|tarde|noche)|a\.?\s?m\.?|p\.?\s?m\.?)/);
+  if (hourMatch) {
+    let h = parseInt(hourMatch[1], 10);
+    let m = 0;
+    if (hourMatch[2]) m = parseInt(hourMatch[2], 10);
+    else if (hourMatch[3] === 'media') m = 30;
+    else if (hourMatch[3] === 'cuarto') m = 15;
+    const period = hourMatch[4] || '';
+    if (/tarde|noche|p\.?\s?m/.test(period) && h < 12) h += 12;
+    if (/mañana|a\.?\s?m/.test(period) && h === 12) h = 0;
+    if (h >= 0 && h <= 23) result.time = `${pad(h)}:${pad(m)}`;
+  } else if (!result.time) {
+    // "a las 8" sin franja
+    const simple = lower.match(/a las?\s+(\d{1,2})(?::(\d{2}))?/);
+    if (simple) {
+      const h = parseInt(simple[1], 10);
+      const m = simple[2] ? parseInt(simple[2], 10) : 0;
       if (h >= 0 && h <= 23) result.time = `${pad(h)}:${pad(m)}`;
     }
   }
+
+  // La hora de inicio es obligatoria: por defecto 09:00 si no se dijo ninguna.
+  if (!result.time) result.time = '09:00';
 
   // --- Limpiar el título: quitar expresiones de fecha/hora/recurrencia ---
   let title = text;
@@ -117,8 +142,11 @@ export function parseVoiceToTask(transcript) {
     // horas y fragmentos de hora restantes
     .replace(/\ba las?\b/gi, ' ')
     .replace(/\b\d{1,2}(:\d{2})?\s*(de la (mañana|tarde|noche)|am|pm|a\.m\.|p\.m\.)\b/gi, ' ')
+    .replace(/\b\d{1,2}(:\d{2})?\s*(a\.?\s?m\.?|p\.?\s?m\.?)\b/gi, ' ')
     .replace(/\bde la (mañana|tarde|noche)\b/gi, ' ')
     .replace(/\by (media|cuarto)\b/gi, ' ')
+    // días relativos
+    .replace(/\b(pasado\s+mañana|pasado|mañana|hoy)\b/gi, ' ')
     // días de la semana sueltos
     .replace(/\b(domingos?|lunes|martes|mi[ée]rcoles|miercoles|jueves|viernes|s[áa]bados?|sabados?)\b/gi, ' ')
     // conectores y cuantificadores sobrantes

@@ -19,10 +19,18 @@ function todayYMD() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// Suma minutos a una hora 'HH:MM' (tope 23:59 dentro del mismo día).
+function addMinutes(hhmm, minutes) {
+  if (!/^\d{2}:\d{2}$/.test(hhmm || '')) return '';
+  const [h, m] = hhmm.split(':').map(Number);
+  let total = Math.min(h * 60 + m + minutes, 24 * 60 - 1);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
 function blank(date) {
   return {
     title: '', description: '', color: '#6366f1',
-    start_date: date || todayYMD(), time: '',
+    start_date: date || todayYMD(), time: '09:00', end_time: '10:00',
     recurrence_type: 'none', recurrence_interval: 1,
     recurrence_weekdays: [], recurrence_end: '', reminder_minutes: 0,
   };
@@ -33,7 +41,8 @@ export default function TaskModal({ initial, defaultDate, prefill, voiceTranscri
     if (initial) {
       return {
         ...initial,
-        time: initial.time || '',
+        time: initial.time || '09:00',
+        end_time: initial.end_time || addMinutes(initial.time || '09:00', 60),
         recurrence_end: initial.recurrence_end || '',
         recurrence_weekdays: initial.recurrence_weekdays
           ? String(initial.recurrence_weekdays).split(',').filter(Boolean).map(Number)
@@ -42,11 +51,13 @@ export default function TaskModal({ initial, defaultDate, prefill, voiceTranscri
     }
     const base = blank(defaultDate);
     if (prefill) {
+      const time = prefill.time || base.time;
       return {
         ...base,
         title: prefill.title || '',
         start_date: prefill.start_date || base.start_date,
-        time: prefill.time || '',
+        time,
+        end_time: addMinutes(time, 60),
         recurrence_type: prefill.recurrence_type || 'none',
         recurrence_interval: prefill.recurrence_interval || 1,
         recurrence_weekdays: prefill.recurrence_weekdays || [],
@@ -66,6 +77,9 @@ export default function TaskModal({ initial, defaultDate, prefill, voiceTranscri
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
+  // Al cambiar la hora de inicio, la de fin se reajusta para mantener 1 hora de duración.
+  const setStart = (v) => setForm((f) => ({ ...f, time: v, end_time: addMinutes(v, 60) || f.end_time }));
+
   const toggleWeekday = (d) => {
     setForm((f) => {
       const has = f.recurrence_weekdays.includes(d);
@@ -80,25 +94,30 @@ export default function TaskModal({ initial, defaultDate, prefill, voiceTranscri
 
   const applyVoice = (task, transcript) => {
     setVoiceNote(`🎙️ "${transcript}"`);
-    setForm((f) => ({
-      ...f,
-      title: task.title || f.title,
-      start_date: task.start_date || f.start_date,
-      time: task.time || f.time,
-      recurrence_type: task.recurrence_type || 'none',
-      recurrence_interval: task.recurrence_interval || 1,
-      recurrence_weekdays: task.recurrence_weekdays?.length ? task.recurrence_weekdays : f.recurrence_weekdays,
-    }));
+    setForm((f) => {
+      const time = task.time || f.time;
+      return {
+        ...f,
+        title: task.title || f.title,
+        start_date: task.start_date || f.start_date,
+        time,
+        end_time: task.time ? addMinutes(time, 60) : f.end_time,
+        recurrence_type: task.recurrence_type || 'none',
+        recurrence_interval: task.recurrence_interval || 1,
+        recurrence_weekdays: task.recurrence_weekdays?.length ? task.recurrence_weekdays : f.recurrence_weekdays,
+      };
+    });
   };
 
   const save = async () => {
     setError('');
     if (!form.title.trim()) return setError('El título es obligatorio');
+    if (!/^\d{2}:\d{2}$/.test(form.time)) return setError('La hora de inicio es obligatoria');
+    if (!/^\d{2}:\d{2}$/.test(form.end_time)) return setError('La hora de fin es obligatoria');
     setBusy(true);
     try {
       const payload = {
         ...form,
-        time: form.time || null,
         recurrence_end: form.recurrence_end || null,
         recurrence_weekdays: form.recurrence_weekdays,
       };
@@ -144,16 +163,22 @@ export default function TaskModal({ initial, defaultDate, prefill, voiceTranscri
             />
           </div>
 
+          <div>
+            <label>Fecha de inicio</label>
+            <input type="date" value={form.start_date} onChange={(e) => set('start_date', e.target.value)} required />
+          </div>
+
           <div className="row-2">
             <div>
-              <label>Fecha de inicio</label>
-              <input type="date" value={form.start_date} onChange={(e) => set('start_date', e.target.value)} />
+              <label>Hora de inicio *</label>
+              <input type="time" value={form.time} onChange={(e) => setStart(e.target.value)} required />
             </div>
             <div>
-              <label>Hora (opcional)</label>
-              <input type="time" value={form.time} onChange={(e) => set('time', e.target.value)} />
+              <label>Hora de fin *</label>
+              <input type="time" value={form.end_time} onChange={(e) => set('end_time', e.target.value)} required />
             </div>
           </div>
+          <p className="muted" style={{ marginTop: '-0.4rem' }}>Por defecto las tareas duran 1 hora; ajústalo si lo necesitas.</p>
 
           <div>
             <label>Repetición</label>

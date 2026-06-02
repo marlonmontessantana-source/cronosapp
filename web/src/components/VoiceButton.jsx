@@ -24,10 +24,23 @@ export default function VoiceButton({ onResult, onError, variant = 'icon', label
     // Feedback inmediato mientras se pide permiso / arranca el motor.
     setListening(true);
 
-    // 1) Solicitar el micrófono explícitamente: esto abre el diálogo de permiso
-    //    de forma fiable y nos da un error claro si algo falla.
+    // 1) Pedir el micrófono SOLO la primera vez. Si el permiso ya está concedido,
+    //    saltamos getUserMedia y vamos directo al reconocimiento (sin volver a preguntar).
+    let alreadyGranted = false;
     try {
-      if (navigator.mediaDevices?.getUserMedia) {
+      if (navigator.permissions?.query) {
+        const status = await navigator.permissions.query({ name: 'microphone' });
+        alreadyGranted = status.state === 'granted';
+        if (status.state === 'denied') {
+          setListening(false);
+          onError?.('Permiso de micrófono bloqueado. Actívalo en el candado 🔒 de la barra de direcciones y recarga.');
+          return;
+        }
+      }
+    } catch { /* algunos navegadores no soportan permissions.query para 'microphone' */ }
+
+    try {
+      if (!alreadyGranted && navigator.mediaDevices?.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         stream.getTracks().forEach((t) => t.stop());
       }

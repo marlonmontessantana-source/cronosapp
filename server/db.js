@@ -31,7 +31,8 @@ db.exec(`
     description         TEXT NOT NULL DEFAULT '',
     color               TEXT NOT NULL DEFAULT '#6366f1',
     start_date          TEXT NOT NULL,               -- 'YYYY-MM-DD'
-    time                TEXT,                         -- 'HH:MM' o null (todo el día)
+    time                TEXT NOT NULL DEFAULT '09:00', -- 'HH:MM' hora de inicio (obligatoria)
+    end_time            TEXT NOT NULL DEFAULT '10:00', -- 'HH:MM' hora de fin
     recurrence_type     TEXT NOT NULL DEFAULT 'none', -- none|daily|weekly|monthly
     recurrence_interval INTEGER NOT NULL DEFAULT 1,   -- cada N
     recurrence_weekdays TEXT NOT NULL DEFAULT '',     -- CSV 0-6 (0=domingo) para weekly
@@ -69,5 +70,15 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_tasks_user ON tasks(user_id);
   CREATE INDEX IF NOT EXISTS idx_completions_user ON completions(user_id);
 `);
+
+// --- Migraciones para bases de datos existentes ---
+const taskCols = db.prepare('PRAGMA table_info(tasks)').all().map((c) => c.name);
+if (!taskCols.includes('end_time')) {
+  db.exec("ALTER TABLE tasks ADD COLUMN end_time TEXT NOT NULL DEFAULT '10:00'");
+}
+// Toda tarea debe tener hora de inicio; rellenar las que vinieran sin hora ("todo el día").
+db.exec("UPDATE tasks SET time = '09:00' WHERE time IS NULL OR time = ''");
+// Hora de fin por defecto = inicio + 1 hora cuando falte.
+db.exec("UPDATE tasks SET end_time = substr(time(time, '+1 hour'), 1, 5) WHERE end_time IS NULL OR end_time = ''");
 
 export default db;

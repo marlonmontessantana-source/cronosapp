@@ -36,7 +36,7 @@ export default function History() {
                 <div className="occ-title">{h.title}</div>
                 <div className="occ-meta">
                   Programada el {new Date(h.occurrence_date + 'T00:00:00').toLocaleDateString('es')}
-                  {h.time ? ` · ${h.time}` : ''}
+                  {h.time ? ` · ${h.time}${h.end_time ? '–' + h.end_time : ''}` : ''}
                   {h.status === 'skipped' ? ' · omitida' : ''}
                 </div>
               </div>

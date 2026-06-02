@@ -126,7 +126,7 @@ export default function Calendar({ toast }) {
       <div className="occ-main">
         <div className={'occ-title' + (o.status === 'done' ? ' done' : '')}>{o.title}</div>
         <div className="occ-meta">
-          {o.time ? `🕐 ${o.time}` : 'Todo el día'}
+          {`🕐 ${o.time}${o.end_time ? ' – ' + o.end_time : ''}`}
           {o.recurrence_type !== 'none' && ' · 🔁 se repite'}
           {o.description ? ` · ${o.description}` : ''}
         </div>

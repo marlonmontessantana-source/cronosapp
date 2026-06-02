@@ -7,13 +7,27 @@ router.use(requireAuth);
 
 const VALID_RECURRENCE = new Set(['none', 'daily', 'weekly', 'monthly']);
 
+// Devuelve la hora ('HH:MM') sumándole `minutes`, recortando dentro del mismo día.
+function addMinutesToTime(hhmm, minutes) {
+  const [h, m] = hhmm.split(':').map(Number);
+  let total = h * 60 + m + minutes;
+  if (total >= 24 * 60) total = 24 * 60 - 1; // tope 23:59
+  if (total < 0) total = 0;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
 function sanitizeTask(body) {
+  const time = String(body.time || '').trim();
+  let end_time = String(body.end_time || '').trim();
+  // Por defecto, los eventos duran 1 hora.
+  if (!end_time && /^\d{2}:\d{2}$/.test(time)) end_time = addMinutesToTime(time, 60);
   const t = {
     title: String(body.title || '').trim(),
     description: String(body.description || '').trim(),
     color: String(body.color || '#6366f1'),
     start_date: String(body.start_date || '').trim(),
-    time: body.time ? String(body.time).trim() : null,
+    time,
+    end_time,
     recurrence_type: VALID_RECURRENCE.has(body.recurrence_type) ? body.recurrence_type : 'none',
     recurrence_interval: Math.max(1, parseInt(body.recurrence_interval, 10) || 1),
     recurrence_weekdays: Array.isArray(body.recurrence_weekdays)
@@ -29,7 +43,8 @@ function sanitizeTask(body) {
 function validate(t) {
   if (!t.title) return 'El título es obligatorio';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(t.start_date)) return 'Fecha de inicio inválida';
-  if (t.time && !/^\d{2}:\d{2}$/.test(t.time)) return 'Hora inválida';
+  if (!/^\d{2}:\d{2}$/.test(t.time)) return 'La hora de inicio es obligatoria';
+  if (!/^\d{2}:\d{2}$/.test(t.end_time)) return 'Hora de fin inválida';
   return null;
 }
 
@@ -49,9 +64,9 @@ router.post('/', (req, res) => {
   const info = db
     .prepare(
       `INSERT INTO tasks
-       (user_id, title, description, color, start_date, time, recurrence_type,
+       (user_id, title, description, color, start_date, time, end_time, recurrence_type,
         recurrence_interval, recurrence_weekdays, recurrence_end, reminder_minutes, active)
-       VALUES (@user_id, @title, @description, @color, @start_date, @time, @recurrence_type,
+       VALUES (@user_id, @title, @description, @color, @start_date, @time, @end_time, @recurrence_type,
         @recurrence_interval, @recurrence_weekdays, @recurrence_end, @reminder_minutes, @active)`
     )
     .run({ ...t, user_id: req.user.id });
@@ -70,7 +85,7 @@ router.put('/:id', (req, res) => {
   if (err) return res.status(400).json({ error: err });
   db.prepare(
     `UPDATE tasks SET title=@title, description=@description, color=@color, start_date=@start_date,
-      time=@time, recurrence_type=@recurrence_type, recurrence_interval=@recurrence_interval,
+      time=@time, end_time=@end_time, recurrence_type=@recurrence_type, recurrence_interval=@recurrence_interval,
       recurrence_weekdays=@recurrence_weekdays, recurrence_end=@recurrence_end,
       reminder_minutes=@reminder_minutes, active=@active
      WHERE id=@id AND user_id=@user_id`
